@@ -1,0 +1,36 @@
+Vulnerability: Broken Authentication / 2FA Bypass
+Platform: PortSwigger Web Security Academy
+Objective
+Bypass the second authentication factor by manipulating the application's authentication flow and accessing the victim's account without completing 2FA.
+Endpoints
+/login
+/login2
+/my-account
+/login — accepts the username and password.
+/login2 — handles the 4-digit 2FA verification.
+/my-account — authenticated account dashboard.
+Methodology
+I first submitted the primary credentials through /login.
+An initial attempt to retrieve the 2FA code before submitting valid credentials resulted in an empty inbox. This showed that the verification code was generated only after successful first-factor authentication.
+Instead of attempting to brute-force the 4-digit code, I investigated whether the application properly enforced the authentication workflow.
+After successfully authenticating with the supplied credentials, I was redirected to the 2FA verification stage at /login2.
+I then manually modified the browser URL and requested:
+GET /my-account?id=carlos
+The application accepted the partially authenticated session and allowed access to Carlos's account without requiring completion of the 2FA step.
+The account page displayed:
+Your username is carlos
+This confirmed that the second authentication factor had effectively been bypassed.
+Why the Vulnerability Exists
+The application trusted the partially authenticated session without verifying that the 2FA step had been successfully completed before granting access to the protected /my-account endpoint.
+The security issue was therefore not the strength of the 2FA code. The flaw was in the application's authentication-state enforcement.
+Key Takeaways
+2FA must be enforced server-side before protected resources are accessible.
+A valid first factor should not automatically grant access to authenticated functionality.
+Authentication testing should examine the entire workflow, not just individual login forms.
+Directly requesting protected endpoints can reveal broken authentication controls.
+Not every 2FA vulnerability requires guessing or brute-forcing the OTP.
+Verification
+The lab displayed:
+LAB: Solved
+Congratulations, you solved the lab!
+Status: ✅ LAB SOLVED
