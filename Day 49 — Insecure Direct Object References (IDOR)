@@ -1,0 +1,187 @@
+Platform: PortSwigger Web Security AcademyCategory: Access Control
+Vulnerability: Insecure Direct Object Reference (IDOR)
+Tool: Burp Suite
+Lab Status: Solved ✅
+
+Overview
+
+Today I worked on an Insecure Direct Object Reference (IDOR) vulnerability.
+
+The application provided users with access to their live-chat transcripts through a downloadable text file. The filenames followed a predictable pattern, making the object reference easy to manipulate.
+
+The core issue was not authentication. I was already authenticated as a legitimate user.
+
+The problem was that the application failed to verify whether I was authorized to access the specific transcript I requested.
+
+---
+
+Methodology
+
+1. Generate legitimate traffic
+
+I opened the Live Chat feature and generated a conversation so that the application would create a transcript.
+
+I then used the transcript download functionality to generate the relevant HTTP request.
+
+2. Capture the request
+
+I inspected the traffic in:
+
+Burp Suite → Proxy → HTTP history
+
+The relevant request contained a filename parameter similar to:
+
+GET /download-transcript?filename=2.txt HTTP/1.1
+
+I sent the request to Burp Repeater.
+
+3. Identify the object reference
+
+The important part of the request was:
+
+filename=2.txt
+
+The sequential naming convention suggested that other transcript files might exist.
+
+4. Manipulate the reference
+
+I changed the filename to another existing value:
+
+filename=1.txt
+
+I then sent the modified request.
+
+5. Analyze the response
+
+The server returned a transcript belonging to another user.
+
+This confirmed that the application was allowing me to access an object that did not belong to my authenticated session.
+
+The exposed transcript contained sensitive credentials, demonstrating the potential impact of the vulnerability.
+
+I used the exposed credentials to authenticate as the other lab user and complete the lab.
+
+---
+
+Why This Is an IDOR
+
+The important distinction is:
+
+Authentication:
+The application knows who I am.
+
+Authorization:
+The application must determine whether I am allowed to access the specific object I requested.
+
+In this case, authentication was functioning, but object-level authorization was missing.
+
+The vulnerable flow was essentially:
+
+Authenticated user
+       ↓
+Requests transcript
+       ↓
+Server receives filename
+       ↓
+Server retrieves requested file
+       ↓
+No ownership/authorization check
+       ↓
+Another user's transcript is returned
+
+A secure application should instead perform an authorization check before returning the resource.
+
+---
+
+Burp Suite Workflow
+
+My testing workflow for this lab was:
+
+Generate legitimate request
+        ↓
+Proxy → HTTP history
+        ↓
+Identify object reference
+        ↓
+Send to Repeater
+        ↓
+Modify filename
+        ↓
+Send request
+        ↓
+Compare response
+        ↓
+Verify unauthorized access
+
+For larger applications, this same concept can be extended to testing multiple object references with Burp Intruder.
+
+---
+
+Troubleshooting: WebSocket Connection
+
+I initially encountered a problem where the Live Chat interface showed:
+
+System: Disconnected
+
+The application uses WebSockets for its live-chat functionality.
+
+My initial troubleshooting involved temporarily disabling the browser proxy, which restored the chat connection but also meant Burp could no longer capture the traffic.
+
+The final configuration was:
+
+- Firefox proxy → "127.0.0.1:8080"
+- Burp proxy → enabled
+- Burp Intercept → OFF
+
+This allowed the WebSocket connection to establish while Burp continued recording the HTTP traffic in HTTP history.
+
+That was an important practical lesson: Burp does not need Intercept enabled to record traffic.
+
+---
+
+Remediation
+
+The primary defense against IDOR is server-side object-level authorization.
+
+Before returning a requested object, the application should verify that the authenticated user is actually permitted to access it.
+
+Conceptually:
+
+current_user = session.get_user()
+requested_file = request.get_parameter("filename")
+
+if not database.verify_ownership(current_user, requested_file):
+    return HTTP_Response(403, "Forbidden")
+
+return serve_file(requested_file)
+
+Another useful defense is avoiding easily predictable object identifiers.
+
+For example:
+
+Vulnerable:
+filename=1.txt
+
+Better:
+filename=<unguessable-resource-token>
+
+However, unpredictable identifiers are not a replacement for authorization checks. Even a UUID can be exposed or obtained through other application functionality, so the server must still verify access rights.
+
+---
+
+Key Takeaways
+
+- IDOR is an access-control vulnerability.
+- Authentication and authorization are different security controls.
+- Object references can appear in URLs, parameters, request bodies, cookies, API paths, or filenames.
+- Predictable identifiers can make enumeration easier.
+- Burp Repeater is useful for manually testing object references.
+- A successful HTTP response does not automatically mean access is authorized.
+- The strongest defense is server-side authorization for every requested object.
+- Sensitive data exposed through an IDOR can significantly increase the impact of the vulnerability.
+
+Lab Status
+
+Solved ✅
+
+Day 82/100 complete.
