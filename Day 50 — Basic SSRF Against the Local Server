@@ -1,0 +1,95 @@
+Lab
+PortSwigger Web Security Academy — Basic SSRF against the local server
+
+Objective
+
+Exploit a Server-Side Request Forgery (SSRF) vulnerability to access an internal admin panel and delete the user "carlos".
+
+Environment
+
+My laptop is currently unavailable, so I continued this lab from my phone using:
+
+- Chrome
+- Termux
+- curl
+- PortSwigger Web Security Academy
+
+What is SSRF?
+
+Server-Side Request Forgery (SSRF) occurs when an application allows an attacker to influence a request made by the server.
+
+This can allow an attacker to make the server communicate with internal resources that the attacker cannot access directly.
+
+Methodology
+
+The application had a product stock-check feature that accepted a "stockApi" parameter.
+
+The normal stock-check functionality used an external stock server.
+
+I tested whether I could control the destination of the server-side request.
+
+I first confirmed that the normal stock check worked through Chrome.
+
+I then used Termux and curl to send a request through the vulnerable stock-check endpoint, changing the "stockApi" value to:
+
+"http://localhost/admin"
+
+The important point was that the request to "localhost" was made by the vulnerable server.
+
+The response returned the internal admin panel, which contained the available users and their administrative actions.
+
+The panel exposed the deletion endpoint:
+
+"/admin/delete?username=carlos"
+
+I then sent the deletion URL through the same vulnerable "stockApi" parameter using curl:
+
+"http://localhost/admin/delete?username=carlos"
+
+The command itself did not display a useful response, so I did not assume the action had succeeded.
+
+Instead, I refreshed the PortSwigger lab in Chrome and verified the actual result.
+
+The lab status changed to:
+
+LAB — Solved ✅
+
+Key Lesson
+
+SSRF is powerful because the attacker does not necessarily need direct access to an internal service.
+
+If the application can be manipulated into making the request, the server's own network access can become the attacker's pathway to internal resources.
+
+Root Cause
+
+The application trusted user-controlled input to determine where the server should make a request without adequately restricting the destination.
+
+Potential Impact
+
+Depending on the application and network environment, SSRF can potentially allow attackers to:
+
+- Access internal administrative interfaces
+- Interact with internal APIs
+- Read sensitive internal resources
+- Reach services that are not publicly accessible
+- Access cloud metadata services
+- Perform privileged actions through trusted internal services
+
+Main Takeaway
+
+When an application accepts a user-controlled URL, the destination needs to be properly validated and restricted.
+
+A request originating from the server is not automatically trustworthy.
+
+Tools Used
+
+- Chrome
+- Termux
+- curl
+- PortSwigger Web Security Academy
+
+Result
+
+Lab solved ✅
+
+#100DaysOfCyberSecurity
