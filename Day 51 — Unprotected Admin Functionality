@@ -1,0 +1,101 @@
+Lab
+PortSwigger Web Security Academy — Unprotected admin functionality
+
+Environment
+
+My laptop is currently unavailable, so I continued my #100DaysOfCyberSecurity challenge from my phone.
+
+Tools used:
+
+- Firefox
+- Termux when needed
+- PortSwigger Web Security Academy
+
+Objective
+
+Access an administrator panel that was not properly protected and use the exposed administrative functionality to delete the user "carlos".
+
+Methodology
+
+I started by exploring the lab application.
+
+I checked the site's "robots.txt" file:
+
+"/robots.txt"
+
+The response contained:
+
+"Disallow: /administrator-panel"
+
+This revealed the location of the administrator panel.
+
+I then navigated directly to:
+
+"/administrator-panel"
+
+Instead of receiving an authorization error, the application displayed the administrator functionality.
+
+The panel showed a list of users, including:
+
+- "wiener"
+- "carlos"
+
+Each user had a Delete option.
+
+I selected the Delete option for "carlos".
+
+The application responded:
+
+User deleted successfully!
+
+The PortSwigger lab status then changed to:
+
+LAB — Solved ✅
+
+Vulnerability
+
+Unprotected administrative functionality / broken access control
+
+Why it worked
+
+The application relied on the administrative URL being difficult to discover rather than properly enforcing authorization.
+
+Knowing or discovering the URL was enough to reach the administrative functionality.
+
+The "robots.txt" file unintentionally helped reveal the hidden path, but the underlying security issue was the lack of proper access control on the administrator panel.
+
+Key Lesson
+
+Hiding a sensitive endpoint is not the same as protecting it.
+
+Files such as "robots.txt" can reveal interesting paths, but even if an attacker discovers an administrative endpoint through another method, the application must still enforce authorization.
+
+Sensitive functionality should verify that the requesting user has the required privileges before allowing administrative actions.
+
+Bug Hunting Takeaway
+
+When testing authorized applications, don't only look at what is visible in the interface.
+
+Look for:
+
+- Hidden or unlinked endpoints
+- "robots.txt"
+- Administrative paths
+- Debug pages
+- Forgotten functionality
+- Direct URL access
+- Missing authorization checks
+
+The important question is:
+
+«What happens if I directly request functionality that should only be available to an administrator?»
+
+Result
+
+Lab solved ✅
+
+Another practical web-security vulnerability added to my #100DaysOfCyberSecurity journey.
+
+Still learning. Still practicing. Still moving forward—even from my phone. 📱
+
+#100DaysOfCyberSecurity
