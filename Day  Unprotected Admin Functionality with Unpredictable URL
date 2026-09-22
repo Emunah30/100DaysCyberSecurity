@@ -1,0 +1,100 @@
+Category: Access Control
+Platform: PortSwigger Web Security Academy
+Device: Android phone
+Browser: Firefox
+
+Objective
+
+Access the application's administrative panel and delete the user "carlos".
+
+Reconnaissance
+
+Because I was working from my phone, I used Firefox's "view-source:" functionality to inspect the application's publicly accessible HTML.
+
+I searched the source for "admin" and found a JavaScript block controlling the display of an administrative link.
+
+The relevant code contained:
+
+var isAdmin = false;
+
+if (isAdmin) {
+    var topLinksTag = document.getElementsByClassName("top-links")[0];
+
+    var adminPanelTag = document.createElement('a');
+    adminPanelTag.setAttribute('href', '/admin-z8w5mv');
+    adminPanelTag.innerText = 'Admin panel';
+
+    topLinksTag.append(adminPanelTag);
+}
+
+Vulnerability
+
+The application used a client-side variable to determine whether the admin link should appear:
+
+var isAdmin = false;
+
+However, hiding the link did not protect the underlying endpoint.
+
+The administrative path was still present in the publicly accessible source:
+
+/admin-z8w5mv
+
+This meant an unauthenticated user could discover the endpoint by inspecting the application's source code.
+
+Exploitation
+
+I manually accessed the exposed administrative endpoint:
+
+/admin-z8w5mv
+
+The application returned the administrative panel even though I was not an administrator.
+
+The panel contained administrative functionality, including the ability to delete users.
+
+I selected Delete for the target user:
+
+carlos
+
+The application then confirmed the action and the PortSwigger lab was successfully solved.
+
+Root Cause
+
+The application relied on security through obscurity instead of proper access control.
+
+The URL was difficult to guess, but its secrecy was not a valid authorization mechanism.
+
+The application should have verified the user's permissions server-side before allowing access to the administrative panel and its actions.
+
+Impact
+
+If this type of vulnerability existed in a real application, unauthorized users could potentially access administrative functionality.
+
+Depending on the actions available, this could result in:
+
+- Unauthorized user deletion
+- Modification of application data
+- Administrative configuration changes
+- Privilege escalation
+- Other unauthorized administrative actions
+
+Remediation
+
+Administrative functionality should be protected with server-side authorization controls.
+
+The server should:
+
+1. Authenticate the requesting user.
+2. Determine the user's role and permissions.
+3. Verify authorization for every privileged endpoint.
+4. Reject unauthorized requests regardless of whether the endpoint URL is known or unknown.
+5. Avoid relying on hidden UI elements or unpredictable URLs as security controls.
+
+Key Takeaway
+
+An endpoint being hidden is not the same as an endpoint being protected.
+
+Client-side JavaScript controls what a user sees. It should never be trusted to enforce authorization.
+
+This lab reinforced the importance of inspecting application source code and testing whether sensitive endpoints enforce authorization independently of the user interface.
+
+Lab status: Solved ✅
