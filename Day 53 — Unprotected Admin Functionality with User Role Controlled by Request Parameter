@@ -1,0 +1,126 @@
+Platform: PortSwigger Web Security Academy
+Category: Access Control
+Device: Android phone
+Tools: Firefox, Termux, curl
+
+Objective
+
+Access administrative functionality as a low-privileged user and delete the target user "carlos".
+
+Vulnerability
+
+The application trusted a client-controlled parameter to determine whether the current user had administrative privileges.
+
+Instead of securely determining the user's role from trusted server-side state, the application accepted:
+
+Admin=true
+
+as part of the request.
+
+This allowed a normal authenticated user to modify their request and gain access to administrative functionality.
+
+Methodology
+
+I first authenticated as the provided low-privileged user:
+
+username=wiener
+password=peter
+
+I then inspected the application's authenticated requests and session handling.
+
+After establishing a valid session, I modified the request's cookie header by adding the client-controlled administrative parameter:
+
+Cookie: session=<SESSION>; Admin=true
+
+The session value above is intentionally redacted.
+
+The application accepted the modified request and returned the administrative interface instead of rejecting the unauthorized privilege claim.
+
+Privilege Escalation
+
+The important observation was that the server trusted:
+
+Admin=true
+
+without independently verifying whether the authenticated user actually had administrator privileges.
+
+This effectively changed the request from:
+
+Normal user
+      ↓
+Authenticated session
+      ↓
+Admin=false / no admin privilege
+
+to:
+
+Normal user
+      ↓
+Authenticated session
+      ↓
+Admin=true
+      ↓
+Administrative functionality
+
+Administrative Action
+
+After gaining access to the admin functionality, I identified the user-management functionality and targeted the "carlos" account.
+
+The deletion action was successfully executed and the lab returned the solved state.
+
+Root Cause
+
+The root cause was broken access control caused by trusting client-controlled authorization information.
+
+The client should never be able to decide whether it has administrative privileges simply by modifying a request parameter.
+
+Impact
+
+In a real application, this type of vulnerability could allow an attacker to:
+
+- Escalate from a normal account to administrative privileges
+- Access restricted functionality
+- Modify or delete other users
+- Change sensitive application settings
+- Potentially gain broader control over the application
+
+The exact impact depends on what administrative functionality is exposed.
+
+Remediation
+
+Authorization decisions should be made server-side using trusted information.
+
+The application should:
+
+1. Authenticate the user.
+2. Retrieve the user's role/permissions from trusted server-side state.
+3. Ignore client-supplied privilege claims such as "Admin=true".
+4. Enforce authorization checks on every privileged endpoint.
+5. Reject requests when the authenticated user lacks the required permission.
+
+For example, the server should conceptually determine:
+
+Authenticated user
+        ↓
+Look up server-side role
+        ↓
+Is role = administrator?
+        ↓
+YES → allow
+NO  → deny
+
+rather than:
+
+Client says Admin=true
+        ↓
+Trust client
+        ↓
+Grant admin access
+
+Key Takeaway
+
+Authentication tells an application who the user is. Authorization determines what that user is allowed to do.
+
+Authorization decisions must not be controlled by values that the user can freely modify.
+
+Lab status: Solved ✅
