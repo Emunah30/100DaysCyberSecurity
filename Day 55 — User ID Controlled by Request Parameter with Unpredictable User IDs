@@ -1,0 +1,139 @@
+Lab
+
+PortSwigger Web Security Academy — User ID controlled by request parameter with unpredictable user IDs
+
+Objective
+
+Exploit an access-control vulnerability to access another user's private profile despite the application using unpredictable GUIDs as user identifiers.
+
+The goal was to retrieve Carlos's API key and submit it to complete the lab.
+
+Vulnerability
+
+The application used unpredictable GUIDs instead of simple sequential user IDs.
+
+However, unpredictable identifiers do not provide access control.
+
+The application exposed a user's GUID through a public blog post. Once Carlos's GUID was discovered, it could be supplied to the "id" parameter of the account request.
+
+The server returned Carlos's private profile without verifying whether the authenticated user was authorized to access that account.
+
+This is an example of Insecure Direct Object Reference (IDOR) / Broken Object-Level Authorization (BOLA).
+
+Exploitation
+
+1. Locate Carlos's GUID
+
+I browsed the public blog and found a post authored by Carlos.
+
+Opening Carlos's public profile exposed his GUID in the account URL.
+
+The important discovery was that the supposedly unpredictable identifier was available through normal public functionality.
+
+2. Identify the account lookup parameter
+
+I logged in using the lab-provided account:
+
+Username: wiener
+Password: [REDACTED]
+
+The account page used an "id" parameter to determine which user's profile was displayed.
+
+3. Modify the user ID
+
+While authenticated as Wiener, I replaced my own user identifier with Carlos's GUID.
+
+Conceptually:
+
+/account?id=<my-user-id>
+
+was changed to:
+
+/account?id=<carlos-guid>
+
+4. Access Carlos's private profile
+
+The application returned Carlos's private account information even though I was authenticated as Wiener.
+
+The profile contained an API key.
+
+API key: [REDACTED]
+
+I submitted the API key through the lab interface.
+
+5. Lab solved
+
+The platform accepted the API key and displayed the successful lab completion message.
+
+Root Cause
+
+The application trusted a client-controlled object identifier without performing an appropriate server-side authorization check.
+
+The server effectively answered:
+
+«"Does this user ID exist?"»
+
+instead of also asking:
+
+«"Is the currently authenticated user authorized to access this user ID?"»
+
+Why unpredictable IDs don't solve the problem
+
+GUIDs/UUIDs can make identifiers difficult to guess, but they do not replace authorization.
+
+If an identifier can be discovered through:
+
+- public posts
+- links
+- API responses
+- profiles
+- comments
+- browser history
+- application functionality
+
+then an attacker may still obtain it.
+
+Once the identifier is known, missing authorization can make the object accessible.
+
+Impact
+
+The vulnerability allowed an unauthorized user to access another user's private profile information and disclose sensitive data such as an API key.
+
+The severity depends on what information or functionality is exposed through the vulnerable object.
+
+Remediation
+
+The server should perform an authorization check for every object request.
+
+For example:
+
+Authenticated user → Request object → Verify authorization → Return object
+
+Do not rely on:
+
+- unpredictable IDs
+- UUIDs/GUIDs
+- hidden URLs
+- client-side controls
+- security through obscurity
+
+Object identifiers should identify resources, not grant permission to access them.
+
+Key Takeaway
+
+An unpredictable ID is still just an ID.
+
+Authorization must be enforced server-side for every requested object, regardless of how difficult its identifier is to guess.
+
+Evidence
+
+Screenshots captured during the lab show:
+
+1. The PortSwigger lab.
+2. The authenticated account.
+3. Discovery of the user identifier.
+4. Modification of the "id" parameter.
+5. Access to Carlos's profile and API-key field.
+6. Successful submission and lab completion.
+
+Sensitive credentials and API-key values should be redacted from public screenshots.
