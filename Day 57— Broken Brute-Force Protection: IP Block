@@ -1,0 +1,80 @@
+Lab Information- 
+Platform: PortSwigger Web Security Academy- Lab: Broken brute-force protection, IP block
+- Difficulty: Practitioner
+- Category: Authentication vulnerabilities
+- Status: Successfully solved and independently repeated
+- Environment: Android tablet, Firefox and Termux
+
+1. Objective
+
+The objective was to understand and exploit a flaw in a login protection mechanism that was intended to prevent brute-force attacks.
+
+The challenge demonstrated how incorrect handling of failed-login counters can allow an attacker to continue guessing passwords without triggering the expected protection.
+
+2. Vulnerability Description
+
+The application blocks login attempts after three consecutive failures. However, a successful login to the "wiener" account resets the failed-login counter.
+
+This creates a weakness because an attacker can alternate successful logins to "wiener" with password guesses against the target account, "carlos".
+
+Instead of allowing the protection mechanism to track suspicious attempts consistently, the application allows a successful login to interfere with the counter used to protect another account.
+
+3. Methodology
+
+I used Firefox to access the authorised PortSwigger lab and Termux to run a Python script for the login-testing workflow.
+
+During testing, I encountered two issues:
+
+- A filename-related execution error.
+- An expired lab session that prevented an initial run from completing successfully.
+
+After correcting the script invocation and refreshing the lab session, I ran the script again. It identified a candidate password, and I confirmed successful lab completion in the browser.
+
+The recovered credential has been omitted from this report.
+
+4. Root Cause Analysis
+
+The primary issue is the incorrect handling and scope of the failed-login counter.
+
+A successful login to one account should not reset the protection state associated with failed authentication attempts against another account.
+
+This illustrates an important security principle: security controls must maintain the correct context and scope.
+
+Even when a protection mechanism exists, incorrect state management can make it ineffective.
+
+5. Security Impact
+
+In a real application, this weakness could allow an attacker to bypass intended brute-force protection and continue guessing a victim's password.
+
+Possible consequences include:
+
+- Unauthorised account access.
+- Increased exposure to automated password guessing.
+- Reduced effectiveness of account lockout and rate-limiting controls.
+- False confidence in a security mechanism that does not behave consistently.
+
+Actual impact depends on the application's other security controls and whether the attacker can successfully guess valid credentials.
+
+6. Recommended Remediation
+
+1. Separate account protection state: Failed attempts against one account must not be cleared by a successful login to another account.
+2. Implement layered rate limiting: Apply suitable account-level and IP-level controls instead of relying on a single counter.
+3. Use progressive delays where appropriate: Increase the difficulty of repeated guessing while considering the risk of denying legitimate users access.
+4. Monitor suspicious patterns: Detect repeated failures and unusual sequences of successful and unsuccessful logins.
+5. Test counter-reset behaviour: Verify that successful authentication changes only the intended security state.
+
+7. Key Lessons Learned
+
+- Authentication verifies identity; rate limiting restricts how frequently actions can occur.
+- A security control can exist but still fail because of faulty implementation.
+- Successful authentication for one account must not weaken protection for another account.
+- Script execution alone does not prove a vulnerability was successfully exploited; results must be independently verified.
+- Troubleshooting session expiry and execution errors is part of a reliable testing workflow.
+
+8. Conclusion
+
+This lab demonstrated how a flawed failed-login counter reset can undermine brute-force protection. By analysing the interaction between successful authentication and failed attempts, I identified the weakness and completed the authorised lab.
+
+My main takeaway is that effective security requires more than adding protection mechanisms. Their state, scope and interactions must also be designed and tested correctly.
+
+Ethical testing note: All testing was performed against the intentionally vulnerable PortSwigger Web Security Academy lab.
